@@ -35,11 +35,11 @@ key = [
   "Syntax table for `shiftless-mode'")
 
 (defvar shiftless:font-lock-keywords
-  (rx-let ((edge (or " " "\n" "\t" " " "[" "]")))
+  (rx-let ((edge (or " " "\n" "\t" "\r" "[" "]")))
     (rx-let ((property-list (seq "["
                                  (group-n 1
                                           (+? (not edge))
-                                          (*? edge
+                                          (*? (+? edge)
                                               (+? (not edge))))
                                  "]")))
       (list
