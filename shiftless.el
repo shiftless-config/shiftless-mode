@@ -88,6 +88,26 @@ key = [
   :type 'list
   :group 'shiftless)
 
+(defun shiftless:calculate-indent-line ()
+  (save-excursion
+    (beginning-of-line)
+    (if (bobp)
+        0
+      (while (not (looking-back (rx "[")))
+        (while (/= 91 (or (char-before) 0)) ;[
+          (backward-char)
+          (condition-case nil
+              (backward-sexp)
+            (t (skip-chars-backward " \t\r\n")))))
+      (if (looking-at (rx (zero-or-more whitespace) line-end))
+          (+ (current-indentation)
+             shiftless:indent-level)
+        (- (point) (progn (beginning-of-line)
+                          (point)))))))
+
+(defun shiftless:indent-line ()
+  (indent-line-to (max 0 (shiftless:calculate-indent-line))))
+
 (define-derived-mode shiftless-mode
   prog-mode
   "Shiftless"
@@ -96,6 +116,7 @@ key = [
   :syntax-table shiftless:syntax-table
   (setq-local font-lock-defaults '(shiftless:font-lock-keywords))
   (setq-local comment-start "; ")
+  (setq-local indent-line-function 'shiftless:indent-line)
   (run-hooks shiftless-mode-hook))
 
 (add-to-list 'auto-mode-alist '("\\.slc\\'" . shiftless-mode))
