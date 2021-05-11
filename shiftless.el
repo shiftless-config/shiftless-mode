@@ -35,7 +35,10 @@ key = [
   "Syntax table for `shiftless-mode'")
 
 (defvar shiftless:font-lock-keywords
-  (rx-let ((edge (or " " "\n" "\t" "\r" "[" "]")))
+  (rx-let ((edge (or " " "\n" "\t" "\r" "[" "]"))
+           (assoc (one-or-more (or whitespace "\n"))
+                  "="
+                  (one-or-more (or whitespace "\n")))))
     (rx-let ((property-list (seq "["
                                  (group-n 1
                                           (+? (not edge))
@@ -47,12 +50,14 @@ key = [
        (cons (rx (or "_" upper-case))
              'font-lock-warning-face)
        ;; t and nil
-       (cons (rx edge
+       (cons (rx word-boundary
                  (regex (eval-when-compile
-                          (regexp-opt '("t" "nil" "[]")
+                          (regexp-opt '("t" "nil")
                                       "\\(?1:")))
-                 edge)
+                 word-boundary)
              '(1 font-lock-builtin-face))
+       (cons (rx "[]")
+             'font-lock-builtin-face)
        ;; numbers
        (cons (rx edge
                  (group (? "-") (one-or-more digit)
@@ -62,11 +67,10 @@ key = [
        ;; properties
        (cons (rx (or edge string-start)
                  (group-n 1 (one-or-more (not edge)))
-                 (one-or-more whitespace) "=" (one-or-more whitespace))
+                 assoc)
              '(1 font-lock-variable-name-face))
        ;; sequenced properties
-       (cons (rx property-list
-                 (one-or-more whitespace) "=" (one-or-more whitespace))
+       (cons (rx property-list assoc
              '(1 font-lock-variable-name-face t))
        ;; previous property dot
        (cons (rx "." property-list)
