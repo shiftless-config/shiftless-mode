@@ -89,6 +89,8 @@ key = [
   :group 'shiftless)
 
 (defun shiftless:calculate-indent-line ()
+  "Calculate what column a line should be indented to in `shiftless-mode'.
+Does not move point."
   (save-excursion
     (beginning-of-line)
     (if (bobp)
@@ -106,7 +108,11 @@ key = [
                           (point)))))))
 
 (defun shiftless:indent-line ()
-  (indent-line-to (max 0 (shiftless:calculate-indent-line))))
+  "Indent a line in `shiftless-mode'."
+  (let ((point (point)))
+    (indent-line-to (max 0 (shiftless:calculate-indent-line)))
+    (when (< (point) point)
+        (goto-char point))))
 
 (define-derived-mode shiftless-mode
   prog-mode
