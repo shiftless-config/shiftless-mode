@@ -36,9 +36,9 @@ key = [
 
 (defvar shiftless:font-lock-keywords
   (rx-let ((edge (or " " "\n" "\t" "\r" "[" "]"))
-           (assoc (one-or-more (or whitespace "\n"))
-                  "="
-                  (one-or-more (or whitespace "\n")))))
+           (assoc (seq (one-or-more (or whitespace "\n"))
+                       "="
+                       (one-or-more (or whitespace "\n")))))
     (rx-let ((property-list (seq "["
                                  (group-n 1
                                           (+? (not edge))
@@ -70,7 +70,7 @@ key = [
                  assoc)
              '(1 font-lock-variable-name-face))
        ;; sequenced properties
-       (cons (rx property-list assoc
+       (cons (rx property-list assoc)
              '(1 font-lock-variable-name-face t))
        ;; previous property dot
        (cons (rx "." property-list)
