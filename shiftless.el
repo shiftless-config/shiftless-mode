@@ -99,12 +99,11 @@ Does not move point."
     (beginning-of-line)
     (if (bobp)
         0
-      (while (not (looking-back (rx "[")))
-        (while (/= 91 (or (char-before) 0)) ;[
-          (backward-char)
-          (condition-case nil
-              (backward-sexp)
-            (t (skip-chars-backward " \t\r\n")))))
+      (while (/= 91 (or (char-before) 0)) ;[
+        (backward-char)
+        (condition-case nil
+            (backward-sexp)
+          (t (skip-chars-backward " \t\r\n"))))
       (if (looking-at (rx (zero-or-more whitespace) line-end))
           (+ (current-indentation)
              shiftless:indent-level)
