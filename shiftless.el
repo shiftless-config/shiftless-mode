@@ -129,10 +129,12 @@ Does not move point."
              (not (= 91 (elt value 1)))) ;[
         (seq-contains-p value 39)        ;'
         (not (equal value (downcase value))))
-    (insert "'" (replace-regexp-in-string
-                 (rx "'") "\\\\'"
-                 (replace-regexp-in-string
-                  (rx "\\") "\\\\\\\\" value)) "'"))
+    (insert "'"
+            (replace-regexp-in-string
+             (rx "'") "\\\\'"
+             (replace-regexp-in-string
+              (rx "\\") "\\\\\\\\" value))
+            "'"))
    (:else
     (insert value))))
 
