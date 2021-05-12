@@ -65,7 +65,7 @@ key = [
                  edge)
              '(1 font-lock-constant-face))
        ;; properties
-       (cons (rx (or edge string-start)
+       (cons (rx (or edge line-start)
                  (group-n 1 (one-or-more (not edge)))
                  assoc)
              '(1 font-lock-variable-name-face))
