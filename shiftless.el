@@ -81,12 +81,13 @@ key = [
              '(1 font-lock-builtin-face t)))))
   "Default font-lock keywords for shiftless.")
 
-(defcustom shiftless-mode-map
+(defvar shiftless-mode-map
   (let ((m (make-sparse-keymap)))
+    (define-key m (kbd "C-c C-l") 'shiftless:insert-list)
+    (define-key m (kbd "C-c C-a") 'shiftless:insert-association)
+    (define-key m (kbd "C-c C-v") 'shiftless:magic-insert-value)
     m)
-  "Keymap for `shiftless-mode'."
-  :type 'keymap
-  :group 'shiftless)
+  "Keymap for `shiftless-mode'.")
 
 (defcustom shiftless-mode-hook (list)
   "List of functions to be run after entering `shiftless-mode'."
