@@ -1,4 +1,5 @@
 (require 'rx)
+(require 'cl-macs)
 (require 'files)
 (require 'hideshow)
 
@@ -115,6 +116,56 @@ Does not move point."
     (indent-line-to (max 0 (shiftless:calculate-indent-line)))
     (when (< (point) point)
       (goto-char point))))
+
+(defun shiftless:magic-insert-value (value)
+  (cond
+   ((equal "a" value)
+    (shiftless:insert-association 1))
+   ((equal "l" value)
+    (shiftless:insert-list))
+   ((or (and (seq-contains-p value 32)
+             (not (= 46 (elt value 0))) ;.
+             (not (= 91 (elt value 1)))) ;[
+        (seq-contains-p value 39)        ;'
+        (not (equal value (downcase value))))
+    (insert "'" (replace-regexp-in-string
+                 (rx "'") "\\\\'"
+                 (replace-regexp-in-string
+                  (rx "\\") "\\\\\\\\" value)) "'"))
+   (:else
+    (insert value))))
+
+(defun shiftless:insert-list ()
+  (interactive)
+  (insert "[]")
+  (forward-char -1)
+  (cl-loop
+   for value = (read-from-minibuffer "Value: ")
+   when (string-empty-p value) return nil
+   do (shiftless:magic-insert-value value)
+   do (insert ""))
+  (when (= 32 (char-before))            ;space
+    (delete-char -1))
+  (forward-char))
+
+(defun shiftless:insert-association (top-level)
+  (interactive "p")
+  (when (= 1 top-level)
+    (insert "[]")
+    (forward-char -1))
+  (cl-loop
+   for key = (read-from-minibuffer "Key: ")
+   when (string-empty-p key) return nil
+   do (insert "\n")
+   do (shiftless:indent-line)
+   do (if (seq-contains-p key 32)       ;space
+          (insert "[" key "]")
+        (insert key))
+   do (insert " = ")
+   do (shiftless:magic-insert-value
+       (read-from-minibuffer "Value: ")))
+  (when (= 1 top-level)
+      (forward-char)))
 
 (define-derived-mode shiftless-mode
   prog-mode
