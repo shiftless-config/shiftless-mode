@@ -191,6 +191,8 @@ Does not move point."
     (unless (string-empty-p tag-name)
       (insert tag-name " ")
       (shiftless:insert-association 16)
+      (when (looking-back (rx "[]"))
+        (delete-char -3))
       (insert "\n")
       (shiftless:indent-line)
       (shiftless:insert-list 4)
