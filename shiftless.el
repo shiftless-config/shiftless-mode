@@ -85,6 +85,7 @@ key = [
   (let ((m (make-sparse-keymap)))
     (define-key m (kbd "C-c C-l") 'shiftless:insert-list)
     (define-key m (kbd "C-c C-a") 'shiftless:insert-association)
+    (define-key m (kbd "C-c C-m") 'shiftless:insert-tag)
     (define-key m (kbd "C-c C-v") 'shiftless:magic-insert-value)
     m)
   "Keymap for `shiftless-mode'.")
@@ -124,6 +125,8 @@ Does not move point."
     (shiftless:insert-association 1))
    ((equal "l" value)
     (shiftless:insert-list 1))
+   ((equal "m" value)
+    (shiftless:insert-tag))
    ((or (and (seq-contains-p value 32)
              (not (= 46 (elt value 0))) ;.
              (not (= 91 (elt value 1)))) ;[
@@ -177,6 +180,21 @@ Does not move point."
        (read-from-minibuffer "Value: ")))
   (when (/= 4 top-level)
       (forward-char)))
+
+(defun shiftless:insert-tag ()
+  (interactive)
+  (insert "[]")
+  (forward-char -1)
+  (let ((tag-name (read-from-minibuffer "Tag Name: ")))
+    (unless (string-empty-p tag-name)
+      (insert tag-name " ")
+      (shiftless:insert-association 16)
+      (insert "\n")
+      (shiftless:indent-line)
+      (shiftless:insert-list 4)
+      (while (member (char-before) '(32 ?\r ?\n ?\t))
+        (delete-char -1))
+      (forward-char))))
 
 (define-derived-mode shiftless-mode
   prog-mode
