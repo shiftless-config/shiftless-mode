@@ -106,7 +106,9 @@ Does not move point."
       (condition-case nil
           (backward-sexp)
         (t (skip-chars-backward " \t\r\n"))))
-    (if (looking-at (rx (zero-or-more whitespace) line-end))
+    (if (and (not (bobp))
+             (looking-at (rx (zero-or-more whitespace)
+                             line-end)))
         (+ (current-indentation)
            shiftless:indent-level)
       (- (point) (progn (beginning-of-line)
