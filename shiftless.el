@@ -123,7 +123,7 @@ Does not move point."
    ((equal "a" value)
     (shiftless:insert-association 1))
    ((equal "l" value)
-    (shiftless:insert-list))
+    (shiftless:insert-list 1))
    ((or (and (seq-contains-p value 32)
              (not (= 46 (elt value 0))) ;.
              (not (= 91 (elt value 1)))) ;[
@@ -138,28 +138,36 @@ Does not move point."
    (:else
     (insert value))))
 
-(defun shiftless:insert-list ()
-  (interactive)
-  (insert "[]")
-  (forward-char -1)
-  (cl-loop
-   for value = (read-from-minibuffer "Value: ")
-   when (string-empty-p value) return nil
-   do (shiftless:magic-insert-value value)
-   do (insert ""))
-  (when (= 32 (char-before))            ;space
-    (delete-char -1))
-  (forward-char))
-
-(defun shiftless:insert-association (top-level)
+(defun shiftless:insert-list (top-level)
   (interactive "p")
-  (when (= 1 top-level)
+  (when (/= 4 top-level)
     (insert "[]")
     (forward-char -1))
   (cl-loop
+   for first-time = t then nil
+   for value = (read-from-minibuffer "Value: ")
+   when (string-empty-p value) return nil
+   if (not first-time)
+   do (insert (if (= 16 top-level) " " "\n"))
+   do (shiftless:indent-line)
+   do (shiftless:magic-insert-value value))
+  (when (= 32 (char-before))            ;space
+    (delete-char -1))
+  (when (/= 4 top-level)
+      (forward-char)))
+
+(defun shiftless:insert-association (top-level)
+  (interactive "p")
+  (when (/= 4 top-level)
+    (insert "[]")
+    (forward-char -1))
+  (cl-loop
+   for first-time = t then nil
    for key = (read-from-minibuffer "Key: ")
    when (string-empty-p key) return nil
-   do (insert "\n")
+   do (insert (if (= 16 top-level)
+                  (if first-time "" " ")
+                "\n"))
    do (shiftless:indent-line)
    do (if (seq-contains-p key 32)       ;space
           (insert "[" key "]")
@@ -167,7 +175,7 @@ Does not move point."
    do (insert " = ")
    do (shiftless:magic-insert-value
        (read-from-minibuffer "Value: ")))
-  (when (= 1 top-level)
+  (when (/= 4 top-level)
       (forward-char)))
 
 (define-derived-mode shiftless-mode
