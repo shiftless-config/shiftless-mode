@@ -97,25 +97,24 @@ key = [
 Does not move point."
   (save-excursion
     (beginning-of-line)
-    (if (bobp)
-        0
-      (while (/= 91 (or (char-before) 0)) ;[
-        (backward-char)
-        (condition-case nil
-            (backward-sexp)
-          (t (skip-chars-backward " \t\r\n"))))
-      (if (looking-at (rx (zero-or-more whitespace) line-end))
-          (+ (current-indentation)
-             shiftless:indent-level)
-        (- (point) (progn (beginning-of-line)
-                          (point)))))))
+    (while (and (/= 91 (or (char-before) 0)) ;[
+                (not (bobp)))
+      (backward-char)
+      (condition-case nil
+          (backward-sexp)
+        (t (skip-chars-backward " \t\r\n"))))
+    (if (looking-at (rx (zero-or-more whitespace) line-end))
+        (+ (current-indentation)
+           shiftless:indent-level)
+      (- (point) (progn (beginning-of-line)
+                        (point))))))
 
 (defun shiftless:indent-line ()
   "Indent a line in `shiftless-mode'."
   (let ((point (point)))
     (indent-line-to (max 0 (shiftless:calculate-indent-line)))
     (when (< (point) point)
-        (goto-char point))))
+      (goto-char point))))
 
 (define-derived-mode shiftless-mode
   prog-mode
