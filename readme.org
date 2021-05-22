@@ -1,0 +1,56 @@
+#+title: shiftless-mode
+
+An Emacs major mode for editing shiftless configuration files and a loader & dumper.
+
+* Major Mode
+You have your font-lock (colors), you have your indentation, and you have your interface to insert structures:
+| Shortcut    | Action                                                  |
+|-------------+---------------------------------------------------------|
+| =C-c l=       | insert a list                                           |
+| =C-c a=       | insert an association                                   |
+| =C-u ...=     | insert list or association without surrounding brackets |
+| =C-u C-u ...= | insert list or association without any newlines         |
+
+=Value:= prompts automatically escape strings, so no need to surround strings with single quotes or type any more backslashes than you actually want.
+
+=Value:= prompts also accept =a= or =l= to insert a nested list or association
+
+* Loader and Dumper
+
+** Access
+sample.slc:
+#+BEGIN_SRC shiftless
+  anime = [
+    title = 'JoJo\'s Bizarre Adventure'
+    mangaka = [
+      first-name = 'Hirohiko'
+      last-name = 'Araki'
+      age = immortal]
+    parts = ['Phantom Blood' 'Stardust Crusaders' 'Diamond is Unbreakable' 'Golden Wind']
+    rating = 11/10
+    episodes = 152
+    [manga chapters] = [917]]
+#+END_SRC
+
+~shiftless:load~ can take a file name or a string containing shiftless.
+#+BEGIN_SRC emacs-lisp
+  (let ((data (shiftless:load "sample.slc")))
+    (shiftless:access data 'anime 'mangaka 'age) ;importal
+    (shiftless:access data 'anime 'manga 'chapters) ;917
+    )
+#+END_SRC
+
+explicit type access
+#+BEGIN_SRC emacs-lisp
+  (let ((data (shiftless:load "sample.slc"
+                              t ;; this t makes the load explicit
+                              )))
+      (shiftless:access-as 'string data 'anime 'mangaka 'age) ;"importal"
+      (shiftless:access-as 'symbol data 'anime 'mangaka 'last-name) ;araki
+      )
+#+END_SRC
+
+** Dumping
+~shiftless:dump~ takes a lisp data structure and a file name. It writes the equivalent shiftless data structure to the file.
+
+~shiftless:stringify~ takes a lisp data structure and outputs the equivalent shiftless data structure as a string.
