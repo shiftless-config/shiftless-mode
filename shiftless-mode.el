@@ -1,7 +1,10 @@
 (require 'rx)
-(require 'cl-macs)
+(require 'cl-lib)
 (require 'files)
 (require 'hideshow)
+
+(require 'shiftless-load)
+(require 'shiftless-access)
 
 (defgroup shiftless ()
   "Group for `shiftless-mode' customization.")
@@ -50,6 +53,10 @@ key = [
        ;; discouraged characters
        (cons (rx (or "_" upper-case))
              'font-lock-warning-face)
+       ;; equal signs that are not symbols missing spaces around them
+       (cons (rx (or (seq (one-or-more (not whitespace) (group-n 1 "=")))
+                     (seq (group-n 1 "=") (one-or-more (not whitespace)))))
+             '(1 font-lock-warning-face))
        ;; t and nil
        (cons (rx word-boundary
                  (regex (eval-when-compile
@@ -121,6 +128,12 @@ Does not move point."
     (when (< (point) point)
       (goto-char point))))
 
+(defun shiftless::escape-string (string)
+  (replace-regexp-in-string
+   (rx "'") "\\\\'"
+   (replace-regexp-in-string
+    (rx "\\") "\\\\\\\\" string)))
+
 (defun shiftless:magic-insert-value (value)
   (cond
    ((equal "a" value)
@@ -134,12 +147,7 @@ Does not move point."
              (not (= 91 (elt value 1)))) ;[
         (seq-contains-p value 39)        ;'
         (not (equal value (downcase value))))
-    (insert "'"
-            (replace-regexp-in-string
-             (rx "'") "\\\\'"
-             (replace-regexp-in-string
-              (rx "\\") "\\\\\\\\" value))
-            "'"))
+    (insert "'" (shiftless::escape-string value) "'"))
    (:else
     (insert value))))
 
@@ -200,6 +208,7 @@ Does not move point."
         (delete-char -1))
       (forward-char))))
 
+;;;###autoload
 (define-derived-mode shiftless-mode
   prog-mode
   "Shiftless"
@@ -214,5 +223,5 @@ Does not move point."
 (add-to-list 'auto-mode-alist '("\\.slc\\'" . shiftless-mode))
 (add-to-list 'hs-special-modes-alist '(shiftless-mode "\\[" "\\]" ";" nil nil))
 
-(provide 'shiftless)
+(provide 'shiftless-mode)
 ;;; shiftless.el ends here
