@@ -3,9 +3,6 @@
 (require 'files)
 (require 'hideshow)
 
-(require 'shiftless-load)
-(require 'shiftless-access)
-
 (defgroup shiftless ()
   "Group for `shiftless-mode' customization.")
 

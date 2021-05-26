@@ -5,9 +5,6 @@
 (require 'shiftless-types)
 (require 'shiftless-access)
 
-(defvar shiftless::*schema* :implicit
-  "The current schema being used.")
-
 (defvar shiftless::read-table
   '(;; [
     (91 . shiftless::read-sequence)
@@ -33,28 +30,29 @@
                            start (point-max))
                           ""))))))
 
+(defun shiftless::delay-reference (string)
+  (if (string-match (rx ".[" (one-or-more anything) "]")
+                    string)
+      (let ((parts (shiftless::split-references string)))
+        (vector
+         `(lambda (data)
+            (shiftless::read-from-string
+             (apply 'concat
+                    (mapcar
+                     (lambda (part)
+                       (if (consp part)
+                           (apply 'shiftless:access-as 'string data part)
+                         part))
+                     ',parts))))))
+    string))
+
 (defun shiftless::make-atom (string)
   (cond
-   ;; reference
-   ((string-match (rx ".[" (one-or-more anything) "]")
-                  string)
-    (let ((parts (shiftless::split-references string)))
-      (vector
-       `(lambda (data)
-          (shiftless::make-atom
-           (apply 'concat
-                  (mapcar
-                   (lambda (part)
-                     (if (consp part)
-                         (apply 'shiftless:access-as 'string data part)
-                       part))
-                   ',parts)))))))
-   ;; schema
-   ((eq :explicit shiftless::*schema*)
-    string)
+   ((not (stringp string)) string)
+   ((equal "" string) nil)
    ;; string
    ;; '
-   ((= 39 (elt string 0))
+   ((shiftless::stringp string)
     (let ((unquoted (substring string 1 (- (length string) 1))))
       (->>
        unquoted
@@ -90,17 +88,11 @@
              (cond
               ;; key
               ((= 0 place)
-               (or (symbolp item)
-                   (consp item)
-                   (and (eq :explicit shiftless::*schema*)
-                        (let ((shiftless::*schema* :implicit))
-                          (symbolp (shiftless::make-atom item))))))
+               (or (consp item)
+                   (symbolp (shiftless::make-atom item))))
               ;; equal sign
               ((= 1 place)
-               (or (and (symbolp item)
-                        (eq '= item))
-                   (and (eq :explicit shiftless::*schema*)
-                        (equal item "="))))
+               (equal item "="))
               (:else t))))))))
 
 (defun shiftless::add-to-association (key value alist)
@@ -139,13 +131,13 @@
 (defun shiftless::read-reference ()
   (when (shiftless::reference-p)
     (forward-char 2)
-    (let ((shiftless::*schema* :implicit))
-      (prog1 (cl-loop
-              do (shiftless::skip-whitespace-and-comments)
-              until (eq 93 (or (char-after) 0)) ;]
-              for sym = (shiftless::read-symbol-or-number)
-              collect sym)
-        (forward-char)))))
+    (prog1 (mapcar 'shiftless::make-atom ;automatically imply types for reference parts
+                   (cl-loop
+                    do (shiftless::skip-whitespace-and-comments)
+                    until (eq 93 (or (char-after) 0)) ;]
+                    for sym = (shiftless::read-symbol-or-number)
+                    collect sym))
+      (forward-char))))
 
 (defun shiftless::read-string ()
   (let ((start (point)))
@@ -155,7 +147,8 @@
                      (not (= 92 (char-before)))))
       (forward-char))
     (forward-char)
-    (shiftless::make-atom (buffer-substring-no-properties start (point)))))
+    (shiftless::delay-reference
+     (buffer-substring-no-properties start (point)))))
   
 (defun shiftless::skip-whitespace-and-comments ()
   (cl-loop for start = (point)
@@ -167,16 +160,18 @@
 
 (defun shiftless::read-symbol-or-number ()
   (let ((start (point)))
-    (while (not (member (char-after) '(32 ;spacep
-                                       91 ;[
-                                       93 ;]
-                                       39 ;'
-                                       ?\n
-                                       ?\t
-                                       ?\r)))
+    (while (and (char-after)
+                (not (member (char-after) '(32 ;spacep
+                                            91 ;[
+                                            93 ;]
+                                            39 ;'
+                                            ?\n
+                                            ?\t
+                                            ?\r))))
       (shiftless::read-reference)
       (forward-char))
-    (shiftless::make-atom (buffer-substring-no-properties start (point)))))
+    (shiftless::delay-reference
+     (buffer-substring-no-properties start (point)))))
 
 (defun shiftless::read-sequence ()
   (forward-char)
@@ -188,8 +183,7 @@
     (forward-char)
     (if (shiftless::association-p sexp)
         (shiftless::association-from-sequence sexp)
-      (when (cl-member '= (cl-remove-if-not 'shiftless::symbol-p sexp)
-                       :key 'shiftless::atom-symbol)
+      (when (cl-member "=" sexp :test 'equal)
         (warn "The list %S contains the = symbol but is not an association"
               sexp))
       sexp)))
@@ -199,6 +193,12 @@
   (funcall (or (cdr (assoc (char-after) shiftless::read-table
                            'equal))
                'shiftless::read-symbol-or-number)))
+
+(defun shiftless::read-from-string (string)
+  (with-temp-buffer
+    (insert string)
+    (goto-char (point-min))
+    (shiftless::read)))
 
 (defun shiftless::resolve-references (data structure)
   (cond
@@ -218,27 +218,69 @@
    (:else
     structure)))
 
-(defun shiftless:load (string &optional explicit)
-  (let ((shiftless::*schema*
-         (if explicit
-             :explicit
-           :implicit)))
-    (with-temp-buffer
-      (if (not (file-exists-p string))
-          ;; load string
-          (insert string)
-        ;; load file
-        (insert "[]")
-        (forward-char -1)
-        (insert-file-contents string))
-      (goto-char (point-min))
-      (let ((struct (shiftless::read)))
-        (unless (looking-at (rx string-end))
-          (warn "You have some extra characters at the end: %S"
-                (buffer-substring-no-properties
-                 (point) (point-max))))
-        (shiftless::resolve-references
-         struct struct)))))
+(defun shiftless::apply-implicit-schema (data)
+  (cond
+   ((proper-list-p data)
+    (mapcar 'shiftless::apply-implicit-schema data))
+   ((consp data)
+    (cons (car data)
+          (shiftless::apply-implicit-schema (cdr data))))
+   ((stringp data)
+    (shiftless::make-atom data))
+   (:else
+    data)))
+
+(defun shiftless::apply-schema (data schema
+                                     &optional accessors)
+  (cond
+   ((shiftless::alistp data)
+    (mapcar
+     (lambda (pair)
+       (let ((key (car pair))
+             (value (cdr pair)))
+         (cons key
+               (shiftless::apply-schema value schema
+                                        (append accessors
+                                                (list key))))))
+     data))
+   ((proper-list-p data)
+    (mapcar
+     (lambda (item)
+       (shiftless::apply-schema item schema
+                                (append accessors
+                                        (list 0))))
+     data))
+   (:else
+    (funcall (shiftless::function-from-type
+              (apply 'shiftless:access schema accessors))
+             data))))
+
+(defun shiftless:load (string &optional schema)
+  "Return a lisp data structure encoded in the file STRING or directly in STRING."
+  (with-temp-buffer
+    (if (not (file-exists-p string))
+        ;; load string
+        (insert string)
+      ;; load file
+      (insert "[]")
+      (forward-char -1)
+      (insert-file-contents string))
+    (goto-char (point-min))
+    (let* ((struct (shiftless::read))
+           (struct (shiftless::resolve-references
+                    struct struct)))
+      (unless (looking-at (rx string-end))
+        (warn "You have some extra characters at the end: %S"
+              (buffer-substring-no-properties
+               (point) (point-max))))
+      (cond
+       ((eq :implicit schema)
+        (shiftless::apply-implicit-schema struct))
+       (schema
+        (shiftless::apply-schema struct
+                                 (shiftless:load schema :implicit)))
+       (:else
+        struct)))))
 
 (provide 'shiftless-load)
 ;;; shiftless-load.el ends here

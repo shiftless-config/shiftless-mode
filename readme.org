@@ -35,19 +35,46 @@ sample.slc:
 ~shiftless:load~ can take a file name or a string containing shiftless.
 #+BEGIN_SRC emacs-lisp
   (let ((data (shiftless:load "sample.slc")))
-    (shiftless:access data 'anime 'mangaka 'age) ;importal
-    (shiftless:access data 'anime 'manga 'chapters) ;917
+    ;; implicit type access
+    (shiftless:access-value data 'anime 'mangaka 'age) ;importal
+    (shiftless:access-value data 'anime 'manga 'chapters) ;917
+    ;; explicit type access
+    (shiftless:access-as 'string data 'anime 'mangaka 'age) ;"importal"
+    (shiftless:access-as 'symbol data 'anime 'mangaka 'last-name) ;araki
     )
 #+END_SRC
 
-explicit type access
+You can also use ~shiftless:presentp~ with the same arguments as ~shiftless:access-value~ to see if the data includes a certain property.
+
+** Schema
+If you want data structures eagerly loaded instead of delaying parsing until access, you can use a schema as the second argument to ~shiftless::load~. The is the built in schema, ~:implicit~, which loads things based on their written type ('string' is a string, -124.4 is a float, symbol is a symbol, t is true). Otherwise, you can give a file name of a schema file which is formatted the way you want your configuration formatted except instead of values, you have symbols that represent types: integer, float, symbol, string, boolean, or a list containing a type or other structure (~[float]~ means list of floats).
+
+db-info.slc
+#+BEGIN_SRC shiftless
+  versions = [
+    my = 4.2.2
+    postgres = 5.30
+    ms = 3.4.1]
+  active = postgres
+#+END_SRC
+
+schema.slc
+#+BEGIN_SRC shiftless
+  versions = [
+    my = string
+    postgres = string
+    ms = string]
+  active = string
+#+END_SRC
+
+It is not suggested to use shiftless:access-value while using a schema because the type has already been calculated.
 #+BEGIN_SRC emacs-lisp
-  (let ((data (shiftless:load "sample.slc"
-                              t ;; this t makes the load explicit
-                              )))
-      (shiftless:access-as 'string data 'anime 'mangaka 'age) ;"importal"
-      (shiftless:access-as 'symbol data 'anime 'mangaka 'last-name) ;araki
-      )
+  (let ((data (shiftless:load "db-info.slc"
+                              "schema.slc")))
+    ;; access data
+    (shiftless:access data 'versions 'postgres) ; "5.30"
+    (shiftless:access data 'active)             ; "postgres"
+    )
 #+END_SRC
 
 ** Dumping

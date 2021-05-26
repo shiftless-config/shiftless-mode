@@ -9,7 +9,7 @@
 
 (defvar shiftless::*print-current-indent* 0)
 
-(defcustom shiftless:print-newline "\n"
+(defcustom shiftless:print-newline nil
   "The string to use as newline when outputing shiftless format.
 When `nil', do not output newlines."
   :group 'shiftless)
@@ -23,7 +23,9 @@ When `nil', do not output newlines."
        (-every-p
         (lambda (item)
           (and (consp item)
-               (symbolp (car item))))
+               (or (symbolp (car item))
+                   (and (stringp item)
+                        (symbolp (shiftless::make-atom (car item)))))))
         obj)))
 
 (defun shiftless::remove-extra-whitespace ()
@@ -52,7 +54,7 @@ When `nil', do not output newlines."
   (insert "[]") (forward-char -1)
   (let ((shiftless::*print-current-indent*
          shiftless::*print-current-indent*))
-    (if (and shiftless::*print-newline*
+    (if (and shiftless:print-newline
              (/= 1 (length alist)))
         (progn
           (insert shiftless:print-newline)
@@ -109,14 +111,19 @@ When `nil', do not output newlines."
 (cl-defmethod shiftless::output (struct)
   (insert (prin1-to-string struct)))
 
-(defun shiftless:stringify (data)
-  (with-temp-buffer
+(defun shiftless:stringify (data &optional newline indent)
+  (let ((shiftless:print-newline (or newline shiftless:print-newline))
+        (shiftless:print-indent (or indent shiftless:print-indent 2)))
+    (with-temp-buffer
     (shiftless::output data)
-    (buffer-substring-no-properties (point-min) (point-max))))
+    (buffer-substring-no-properties (point-min) (point-max)))))
 
-(defun shiftless:dump (data file)
-  (with-temp-file file
-    (shiftless::output data)))
+(defun shiftless:dump (data file &optional newline indent)
+  (let ((shiftless:print-newline (or newline shiftless:print-newline "\n"))
+        (shiftless:print-indent (or indent shiftless:print-indent 2)))
+    (with-temp-file file
+      (shiftless::output data))))
 
 (provide 'shiftless-stringify)
 ;;; shiftless-stringify.el ends here
+

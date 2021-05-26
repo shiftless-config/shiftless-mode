@@ -1,7 +1,6 @@
 (require 'dash)
 (require 'shiftless-types)
 
-
 (defun shiftless::access-spot (data accessors)
   (cond
    ((or (null accessors)
@@ -23,25 +22,48 @@
            (type-of data)
            (type-of (car accessors))))))
 
+
+(defun shiftless::function-from-type (type)
+  (cond
+   ((eq 'symbol type) 'shiftless::atom-symbol)
+   ((eq 'boolean type) 'shiftless::atom-boolean)
+   ((eq 'integer type) 'shiftless::atom-integer)
+   ((eq 'float type) 'shiftless::atom-float)
+   ((eq 'string type) 'shiftless::atom-string)
+   (:else 'identity)))
+
+
+(defun shiftless:presentp (data &rest accessors)
+  (let ((accessors (reverse (cdr (reverse accessors))))
+        (key (car (last accessors))))
+    (let ((struct (apply 'shiftless:access data accessors)))
+      (cond
+       ((null struct) nil)
+       ((shiftless::alistp struct)
+        (cl-member key struct
+                   :key 'car))
+       ((consp struct)
+        (< key (length struct)))))))
+
+(defun shiftless:access-value (data &rest accessors)
+  (let ((spot (shiftless::access-spot data accessors)))
+    (when spot
+      (if (consp spot)
+          spot
+        (shiftless::value (shiftless::make-atom spot))))))
+
 (defun shiftless:access (data &rest accessors)
   (let ((spot (shiftless::access-spot data accessors)))
-    (if (shiftless::atom-predicate spot)
-        (shiftless::value spot)
-      spot)))
+    (when spot
+      (if (consp spot)
+          spot
+        (shiftless::value spot)))))
 
 (defun shiftless:access-as (type data &rest accessors)
-  (let* ((shiftless::*schema* :explicit)
-         (spot (shiftless::access-spot data accessors)))
+  (let ((spot (or (shiftless::access-spot data accessors) "")))
     (if (shiftless::atom-predicate spot)
-        (funcall
-         (cond
-          ((eq 'symbol type) 'shiftless::atom-symbol)
-          ((eq 'boolean type) 'shiftless::atom-boolean)
-          ((eq 'integer type) 'shiftless::atom-integer)
-          ((eq 'float type) 'shiftless::atom-float)
-          ((eq 'string type) 'shiftless::atom-string)
-          (:else (error "%S is not a supported type" type)))
-         spot)
+        (funcall (shiftless::function-from-type type)
+                 spot)
       spot)))
 
 
