@@ -3,6 +3,9 @@
 An Emacs major mode for editing shiftless configuration files and a loader & dumper.
 
 * Major Mode
+#+BEGIN_SRC emacs-lisp
+(require 'shiftless-mode)
+#+END_SRC
 You have your font-lock (colors), you have your indentation, and you have your interface to insert structures:
 | Shortcut    | Action                                                  |
 |-------------+---------------------------------------------------------|
@@ -15,7 +18,12 @@ You have your font-lock (colors), you have your indentation, and you have your i
 
 =Value:= prompts also accept =a= or =l= to insert a nested list or association
 
+You can customize ~shiftless:indent-level~ (default 2 spaces).
+
 * Loader and Dumper
+#+BEGIN_SRC emacs-lisp
+(require 'shiftless)
+#+END_SRC
 
 ** Access
 sample.slc:
@@ -81,3 +89,5 @@ It is not suggested to use shiftless:access-value while using a schema because t
 ~shiftless:dump~ takes a lisp data structure and a file name. It writes the equivalent shiftless data structure to the file.
 
 ~shiftless:stringify~ takes a lisp data structure and outputs the equivalent shiftless data structure as a string.
+
+Both also take arguments to customize newlines and indent level.
