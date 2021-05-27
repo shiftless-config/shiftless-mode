@@ -252,9 +252,10 @@
                                         (list 0))))
      data))
    (:else
-    (funcall (shiftless::function-from-type
-              (apply 'shiftless:access schema accessors))
-             data))))
+    (let ((type (apply 'shiftless:access schema accessors)))
+      (unless (consp type)
+        (funcall (shiftless::function-from-type type)
+                 data))))))
 
 (defun shiftless:load (string &optional schema)
   "Return a lisp data structure encoded in the file STRING or directly in STRING."
