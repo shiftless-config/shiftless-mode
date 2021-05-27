@@ -55,7 +55,7 @@ sample.slc:
 You can also use ~shiftless:presentp~ with the same arguments as ~shiftless:access-value~ to see if the data includes a certain property.
 
 ** Schema
-If you want data structures eagerly loaded instead of delaying parsing until access, you can use a schema as the second argument to ~shiftless::load~. The is the built in schema, ~:implicit~, which loads things based on their written type ('string' is a string, -124.4 is a float, symbol is a symbol, t is true). Otherwise, you can give a file name of a schema file which is formatted the way you want your configuration formatted except instead of values, you have symbols that represent types: integer, float, symbol, string, boolean, or a list containing a type or other structure (~[float]~ means list of floats).
+If you want data structures eagerly loaded instead of delaying parsing until access, you can use a schema as the second argument to ~shiftless:load~. There is the built in schema, ~:implicit~, which loads things based on their written type ('string' is a string, -124.4 is a float, symbol is a symbol, t is true). Otherwise, you can give a file name of a schema file which is formatted the way you want your configuration formatted except instead of values, you have symbols that represent types: integer, float, symbol, string, boolean, or a list containing a type or other structure (~[float]~ means list of floats).
 
 db-info.slc
 #+BEGIN_SRC shiftless
