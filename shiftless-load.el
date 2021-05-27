@@ -108,11 +108,12 @@
                 (list (cons key
                             (shiftless::add-to-association
                              keys value existing-value)))))))
-   ((cl-member key alist :key 'car)
-    (error "duplicate keys not allowed (%S)" key))
-   ;; not member
-   (:else 
-    (append alist (list (cons (shiftless::atom-symbol key) value))))))
+   (:else
+    (let ((key (shiftless::atom-symbol key)))
+      (if (cl-member key alist :key 'car)
+          (error "duplicate keys not allowed (%S)" key)
+        ;; not member
+        (append alist (list (cons key value))))))))
 
 (defun shiftless::association-from-sequence (obj)
   (cl-loop 
